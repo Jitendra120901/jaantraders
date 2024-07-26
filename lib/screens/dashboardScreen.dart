@@ -21,6 +21,7 @@ import 'package:jaantradersindia/screens/report/schemeReport.dart';
 import 'package:jaantradersindia/screens/retailer/addRetailer.dart';
 import 'package:jaantradersindia/screens/retailer/manageRtailer.dart';
 import 'package:jaantradersindia/screens/users/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardScreen extends StatefulWidget {
   final userIs;
@@ -82,7 +83,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   int selectedBodyIndex = 0;
 
-  void openOverflowDrawerInchatScreen(BuildContext context) {
+  void openOverflowDrawerInchatScreen(BuildContext context) async{
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+       
   final RenderBox overlay = Overlay.of(context)!.context.findRenderObject() as RenderBox;
   final RenderBox button = context.findRenderObject() as RenderBox;
   final Offset buttonPosition = button.localToGlobal(Offset.zero, ancestor: overlay);
@@ -91,8 +94,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     buttonPosition.dy + button.size.height,
   );
 
-  String userIs = widget.userIs ?? 'Unknown User'; // Default value if null
-  String userRole = widget.userRole ?? 'Unknown Role'; // Default value if null
+  String userIs = await prefs.getString("Name").toString() ; // Default value if null
+  String userRole = await prefs.getString("UserRole").toString(); // Default value if null
 
   showMenu(
     context: context,
@@ -150,12 +153,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListTile(
           leading: Icon(Icons.logout),
           title: Text("Log out", style: TextStyle(fontSize: 15)),
-          onTap: () {
-           
+          onTap: () async{
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.remove('UserID');
+          await prefs.remove("Name");
+          await prefs.remove("UserRole");
+           await prefs.remove("CompanyID");
             Navigator.popUntil(context, (route) {
            return route.isFirst;
             },);
-             FlutterSecureStorage().delete(key: "UserID");
+            
           },
         ),
       ),
@@ -178,12 +185,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       var companyID = AuthControllers.readCredentialData("CompanyID");
       var role = AuthControllers.readCredentialData("UserRole");
-      userid.then((result) {
-        print("user id read in add product screen ===========> $result");
-        setState(() {
-          _userId = result!;
+      setState(() {
+          _userId = userid.toString();
         });
-      });
       
      
     }

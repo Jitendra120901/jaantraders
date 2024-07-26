@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jaantradersindia/ApiHandler/apiWrapper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthControllers {
 
@@ -19,8 +21,11 @@ static  void deleteCredential(String keyName) async {
   }
 
 static Future<String?> readCredentialData(String keyName) async {
+
+   SharedPreferences prefs = await SharedPreferences.getInstance();
+   
     final flutterSecureStorage = FlutterSecureStorage();
-    var readDataFound = await flutterSecureStorage.read(key: keyName);
+    var readDataFound = prefs.getString(keyName) ?? 'N/A';
     return readDataFound;
   }
 
@@ -85,4 +90,44 @@ static Future<String?> readCredentialData(String keyName) async {
       return null;
     }
   }
+
+
+   static void showLoaderDialog(BuildContext context, String title) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Center(
+            child: Container(
+              padding: EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.purple),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 }

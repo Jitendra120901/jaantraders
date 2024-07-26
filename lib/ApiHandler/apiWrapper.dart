@@ -68,22 +68,48 @@ class ApiWrapper {
     });
   }
 
-  Future<ApiResponse?> postApi(
-      {required String url, required dynamic param}) async {
-    // String? authKey = await SharedPrefs().getAuthorizationKey();
+  Future<ApiResponse?> postApi({required String url, required dynamic param}) async {
+  // String? authKey = await SharedPrefs().getAuthorizationKey();
 
-    String urlString = '${NetworkConstantsUtil.baseUrl}$url';
+  String urlString = '${NetworkConstantsUtil.baseUrl}$url';
+  print('Request URL: $urlString');
+  print('Request Params: ${jsonEncode(param)}');
 
-    print(urlString);
-    return http.post(Uri.parse(urlString), body: jsonEncode(param), headers: {
-      // "Authorization": "Bearer ${authKey!}",
-      'Content-Type': 'application/json'
-    }).then((http.Response response) async {
-      dynamic data = _decoder.convert(response.body);
-      print("data get by post api call====================>${data}");
+  try {
+    final response = await http.post(
+      Uri.parse(urlString),
+      body: jsonEncode(param),
+      headers: {
+        // "Authorization": "Bearer ${authKey!}",
+        'Content-Type': 'application/json'
+      },
+    );
+
+    print('Response Status Code: ${response.statusCode}');
+    print('Response Body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      dynamic data = jsonDecode(response.body);
+      print("Data received from API call: $data");
+
+      // Check if the data contains success: false
+      if (data['success'] == false) {
+        print('API response indicates failure: ${data['message']}');
+        return null;
+      }
+
       return ApiResponse.fromJson(data);
-    });
+    } else {
+      print('Server error: ${response.statusCode}');
+      return null;
+    }
+  } catch (e) {
+    print('Error during API call: $e');
+    return null;
   }
+}
+
+
 
   Future<ApiResponse?> putApi(
       {required String url, required dynamic param}) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:jaantradersindia/ApiHandler/apiWrapper.dart';
 import 'package:jaantradersindia/ApiHandler/networkConstant.dart';
 import 'package:jaantradersindia/controllers/authController.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductPointScreen extends StatefulWidget {
   @override
@@ -14,6 +15,7 @@ class _ProductPointScreenState extends State<ProductPointScreen> {
   String? _selectedRole;
   String _userId = ""; // Set your user ID here
   String _companyId = ""; // Set your company ID here
+  String currentUserRole="";
 
   Future<void> handleAddProducts(BuildContext context) async {
     _showLoaderDialog(context);
@@ -126,24 +128,24 @@ class _ProductPointScreenState extends State<ProductPointScreen> {
     );
   }
 
+  void getUserData()async{
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    var userid = await prefs.getString("UserID");;
+    var companyID =await prefs.getString("CompanyID");
+    var role = await prefs.getString("UserRole");
+
+    setState(() {
+      _userId = userid.toString();
+      _companyId = companyID.toString();
+      currentUserRole = role.toString();
+    });
+}
+
   @override
   void initState() {
     super.initState();
-    var userid = AuthControllers.readCredentialData("UserID");
-
-    var companyID = AuthControllers.readCredentialData("CompanyID");
-    var role = AuthControllers.readCredentialData("UserRole");
-    userid.then((result) {
-      print("user id read in add product screen ===========> $result");
-      setState(() {
-        _userId = result!;
-      });
-    });
-    companyID.then((result) {
-      setState(() {
-        _companyId = result!;
-      });
-    });
+    getUserData();
   }
 
   @override

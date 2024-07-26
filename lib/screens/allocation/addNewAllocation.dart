@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:jaantradersindia/ApiHandler/apiWrapper.dart';
 import 'package:jaantradersindia/ApiHandler/networkConstant.dart';
 import 'package:jaantradersindia/controllers/authController.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AllocationScreen extends StatefulWidget {
   @override
@@ -16,35 +17,39 @@ class _AllocationScreenState extends State<AllocationScreen> {
   final TextEditingController _singleProductPointController = TextEditingController();
 
   String? _selectedRole;
-  String _userId = ""; // Set your user ID here
-  String _companyId = ""; // Set your company ID here
+  String _userId = "";
+  String _companyId = "";
+  String? _selectedAllocationFor;
+  String? _selectedRoleIdAllocationFor;
+  String? _selectedProduct;
+   String currentUserRole="";
+
+  List<Map<String, dynamic>> rolesData = [];
+  List<Map<String, dynamic>> productData = [];
+
+void getUserData()async{
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    var userid = await prefs.getString("UserID");;
+    var companyID =await prefs.getString("CompanyID");
+    var role = await prefs.getString("UserRole");
+
+    setState(() {
+      _userId = userid.toString();
+      _companyId = companyID.toString();
+      currentUserRole = role.toString();
+    });
+}
 
   @override
   void initState() {
     super.initState();
-    var userid = AuthControllers.readCredentialData("UserID");
-    var companyID = AuthControllers.readCredentialData("CompanyID");
-    var role = AuthControllers.readCredentialData("UserRole");
-
-    userid.then((result) {
-      print("user id read in add product screen ===========> $result");
-      setState(() {
-        _userId = result!;
-      });
-    });
-    companyID.then((result) {
-      setState(() {
-        _companyId = result!;
-      });
-    });
-    role.then((result) {
-      setState(() {
-        _selectedRole = result!;
-      });
-    });
-
+      
+getUserData();
     _singleProductPointController.addListener(_calculateTotalPoints);
     _bagQuantityController.addListener(_calculateTotalPoints);
+
+    handleGetRolesList(context);  // Fetch the roles list when the screen is initialized
   }
 
   void _calculateTotalPoints() {
@@ -63,31 +68,93 @@ class _AllocationScreenState extends State<AllocationScreen> {
     super.dispose();
   }
 
-  Future<void> handleAddProducts(BuildContext context) async {
-    _showLoaderDialog(context);
+ Future<void> handleAddProducts(BuildContext context) async {
+  AuthControllers.showLoaderDialog(context, "Loading...");
 
+  // Await the Future values
+  String? userId = await _userId;
+  String? selectedRole = await _selectedRole;
+  String? companyId = await _companyId;
+
+  // Convert nullable values to non-null strings with default values if null
+  var params = {
+    "AllocationRole": _selectedAllocationFor ?? "",
+    "AllocationTo":_selectedRoleIdAllocationFor??"",
+    "AllocationProduct": _selectedProduct ?? "",
+    "AllocationDate": _validFromController.text,
+    "SingleProductPoint": _singleProductPointController.text,
+    "BagQuantity": _bagQuantityController.text,
+    "TotalPointsEarned": _totalPointsController.text,
+    "userID": userId ?? "", // Ensure it's not null
+    "userRole": currentUserRole ?? "",
+    "CompanyID": companyId ?? "",
+  };
+
+  try {
+    final ApiResponse? result = await AuthControllers.post(
+        NetworkConstantsUtil.addAllocation, params);
+
+    Navigator.pop(context);
+
+    if (result?.success == "true") {
+      print("post api data after api call =====================> ${result?.success}");
+      final data = result?.data;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${result?.message}',
+            style: TextStyle(color: Colors.black),
+          ),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.greenAccent,
+        )
+      );
+
+    } else {
+      print("post api data after api call on error=====================> ${result?.success}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${result?.message}.'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  } catch (e) {
+    Navigator.pop(context);
+    print("Error during login: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('An error occurred. Please try again.'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+}
+
+
+
+  Future<void> handleGetRolesList(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
     var params = {
-      "AllocationTo": "usr_663368543bd16-Mistri",
-      "AllocationProduct": "prd_1714645562",
-      "AllocationDate": _validFromController.text,
-      "SingleProductPoint": _singleProductPointController.text,
-      "BagQuantity": _bagQuantityController.text,
-      "TotalPointsEarned": _totalPointsController.text,
-      "userID": _userId,
-      "userRole": _selectedRole ?? "",
-      "CompanyID": _companyId
+      "Role": await prefs.getString("UserRole").toString()
     };
 
     try {
-      final ApiResponse? result = await AuthControllers.post(
-          NetworkConstantsUtil.addAllocation, params);
+      final ApiResponse? result = await AuthControllers.post(NetworkConstantsUtil.getUsersByRole, params);
 
-      Navigator.pop(context);
+      print("API Response: ${result?.data}");
 
-      if (result?.success == "true") {
-        print(
-            "post api data after api call =====================> ${result?.success}");
-        final data = result?.data;
+      if (result?.success == "true" && result?.data != null) {
+        List<Map<String, dynamic>> roles = List<Map<String, dynamic>>.from(result?.data);
+
+        setState(() {
+          rolesData = roles;
+          _selectedAllocationFor = null; // Clear selected values
+          _selectedRole = null; // Clear selected values
+        });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -97,23 +164,19 @@ class _AllocationScreenState extends State<AllocationScreen> {
             ),
             duration: Duration(seconds: 2),
             backgroundColor: Colors.greenAccent,
-          )
+          ),
         );
-
       } else {
-        print(
-            "post api data after api call on error=====================> ${result?.success}");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${result?.message}.'),
+            content: Text('${result?.message}'),
             duration: Duration(seconds: 2),
             backgroundColor: Colors.redAccent,
           ),
         );
       }
     } catch (e) {
-      Navigator.pop(context);
-      print("Error during login: $e");
+      print("Error during API call: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('An error occurred. Please try again.'),
@@ -124,50 +187,64 @@ class _AllocationScreenState extends State<AllocationScreen> {
     }
   }
 
-  void _showLoaderDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Center(
-            child: Container(
-              padding: EdgeInsets.all(20.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.purple),
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    "Processing.....",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  Future<void> GetProductListBasisOFUser(BuildContext context, String userId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var params = {
+      "Role": _selectedAllocationFor
+    };
+
+    try {
+      final ApiResponse? result = await AuthControllers.post(NetworkConstantsUtil.getUsersByProduct, params);
+
+      print("API Response: ${result?.data}");
+
+      if (result?.success == "true" && result?.data != null) {
+        List<Map<String, dynamic>> products = List<Map<String, dynamic>>.from(result?.data);
+
+        setState(() {
+          productData = products;
+          _selectedProduct = null; // Clear selected values if needed
+        });
+
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(
+        //     content: Text(
+        //       '${result?.message}',
+        //       style: TextStyle(color: Colors.black),
+        //     ),
+        //     duration: Duration(seconds: 2),
+        //     backgroundColor: Colors.greenAccent,
+        //   ),
+        // );
+        Navigator.pop(context);
+      } else {
+         Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${result?.message}'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.redAccent,
           ),
         );
-      },
-    );
+      }
+    } catch (e) {
+       Navigator.pop(context);
+      print("Error during API call: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred. Please try again.'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
-  Future<void> _selectDate(
-      BuildContext context, TextEditingController controller) async {
+  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate: DateTime(2020),
       lastDate: DateTime(2101),
     );
     if (picked != null) {
@@ -210,13 +287,27 @@ class _AllocationScreenState extends State<AllocationScreen> {
                           Text('Choose Allocation For *'),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            items: [
-                              DropdownMenuItem(
-                                value: 'option1',
-                                child: Text('Select Allocation for'),
-                              ),
-                            ],
-                            onChanged: (value) {},
+                            items: rolesData.map((role) {
+                              return DropdownMenuItem<String>(
+                                value: role['UserID'].toString()+" "+role['Name'],
+                                child: Text(role['Name'].toString()),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              AuthControllers.showLoaderDialog(context, "Loading...");
+                              print("selected user ======== ${value.toString().split(" ")[0]}");
+                              setState(() {
+
+                                _selectedRoleIdAllocationFor=value.toString().split(" ")[0];
+                                _selectedAllocationFor=value.toString().split(" ")[1];
+
+                              });
+                              
+                              if (value != null) {
+                                GetProductListBasisOFUser(context, value);
+                                
+                              }
+                            },
                             decoration: InputDecoration(
                               border: OutlineInputBorder(),
                             ),
@@ -225,13 +316,18 @@ class _AllocationScreenState extends State<AllocationScreen> {
                           Text('Choose Product *'),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            items: [
-                              DropdownMenuItem(
-                                value: 'option1',
-                                child: Text('First Choose Allocation For'),
-                              ),
-                            ],
-                            onChanged: (value) {},
+                            value: _selectedProduct,
+                            items: productData.map((product) {
+                              return DropdownMenuItem<String>(
+                                value: product['ProductID'].toString(),
+                                child: Text(product['ProductName'].toString()),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedProduct = value;
+                              });
+                            },
                             decoration: InputDecoration(
                               border: OutlineInputBorder(),
                             ),
@@ -264,6 +360,7 @@ class _AllocationScreenState extends State<AllocationScreen> {
                           Text('Per Bag Point'),
                           const SizedBox(height: 8),
                           TextField(
+                            keyboardType: TextInputType.number,
                             controller: _singleProductPointController,
                             decoration: InputDecoration(
                               hintText: 'First Choose Product',
@@ -274,6 +371,7 @@ class _AllocationScreenState extends State<AllocationScreen> {
                           Text('Bag Quantity *'),
                           const SizedBox(height: 8),
                           TextField(
+                            keyboardType: TextInputType.number,
                             controller: _bagQuantityController,
                             decoration: InputDecoration(
                               hintText: 'Enter Bag Quantity',
@@ -284,6 +382,7 @@ class _AllocationScreenState extends State<AllocationScreen> {
                           Text('Total Points *'),
                           const SizedBox(height: 8),
                           TextField(
+                            keyboardType: TextInputType.number,
                             controller: _totalPointsController,
                             readOnly: true,
                             decoration: InputDecoration(

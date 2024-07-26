@@ -52,6 +52,8 @@ static String addAllocation ="data/addallocation.php";
 static String getallAllocation="data/getallocation.php";
 static  String deleteAllocation="data/delete-allocation.php";
 static String activateAllocation="data/act-allocation.php";
+static String getUsersByRole="data/allocgetusrbyrole.php";
+static String getUsersByProduct="data/allocgetprdbyrole.php";
 
 // *************** Dashboard *************//
 static String dashboardData="data/dashboard.php";

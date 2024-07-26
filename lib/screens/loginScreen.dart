@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:jaantradersindia/ApiHandler/apiWrapper.dart';
+import 'package:jaantradersindia/ApiHandler/networkConstant.dart';
 import 'package:jaantradersindia/controllers/authController.dart';
 import 'package:jaantradersindia/screens/dashboardScreen.dart';
 import 'package:jaantradersindia/screens/forgetPasswordScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -26,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         // Await the result of the login API call
         final ApiResponse? result =
-            await AuthControllers.post("data/loginVerify.php", params);
+            await AuthControllers.post(NetworkConstantsUtil.login, params);
         Navigator.pop(context);
 
         if (result?.success == "true") {
@@ -37,17 +40,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
           // Navigate to DashboardScreen if login is successful
           if (data != null && data.isNotEmpty) {
-      AuthControllers.saveCredential("UserID", data[0]['UserID']);
-      AuthControllers.saveCredential("Name", data[0]['Name']);
-      AuthControllers.saveCredential("UserRole", data[0]['UserRole']);
-      AuthControllers.saveCredential("CompanyID", data[0]['CompanyID']);
+      // AuthControllers.saveCredential("UserID", data[0]['UserID']);
+      // AuthControllers.saveCredential("Name", data[0]['Name']);
+      // AuthControllers.saveCredential("UserRole", data[0]['UserRole']);
+      // AuthControllers.saveCredential("CompanyID", data[0]['CompanyID']);
+ SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('UserID', data[0]['UserID']);
+          await prefs.setString("Name", data[0]['Name']);
+          await prefs.setString("UserRole", data[0]['UserRole']);
+           await prefs.setString("CompanyID", data[0]['CompanyID']);
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => DashboardScreen(
-                  userId: data[0]['UserID'],
-                  userIs: data[0]['Name'],
-                  userRole: data[0]['UserRole'],
+                  userId: prefs.getString('UserID'),
+                  userIs:prefs.getString('Name'),
+                  userRole:prefs.getString('UserRole'),
                 ),
               ),
             );

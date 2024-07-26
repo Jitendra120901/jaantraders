@@ -176,7 +176,7 @@ class _FreehandReportsScreenState extends State<FreehandReportsScreen> {
                     SizedBox(width: 10),
                     Flexible(
                       fit: FlexFit.tight,
-                      child: _buildDropdown('Choose Role', 'Select Role'),
+                      child: _buildDropdown2('Choose Role', 'Select Role'),
                     ),
                   ],
                 ),
@@ -249,54 +249,115 @@ class _FreehandReportsScreenState extends State<FreehandReportsScreen> {
     );
   }
 
-  Widget _buildDropdown(String label, String hint) {
-    List<DropdownMenuItem<String>> items = rolesData.map((role) {
-      return DropdownMenuItem<String>(
-        child: Text(role['Name'] ?? ''),
-        value: role['Role'],
-      );
-    }).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF666666),
-          ),
-        ),
-        SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: label == 'Choose Allocation For'
-              ? _selectedAllocationFor
-              : _selectedRole,
-          decoration: InputDecoration(
-            contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: Color(0xFFDDDDDD)),
-            ),
-          ),
-          hint: Text(
-            hint,
-            style: TextStyle(fontSize: 10),
-          ),
-          items: items,
-          onChanged: (value) {
-            setState(() {
-              if (label == 'Choose Allocation For') {
-                _selectedAllocationFor = value;
-              } else {
-                _selectedRole = value;
-              }
-            });
-          },
-        ),
-      ],
+ Widget _buildDropdown(String label, String hint) {
+  List<DropdownMenuItem<String>> items = rolesData.asMap().entries.map((entry) {
+    int index = entry.key;
+    Map<String, dynamic> role = entry.value;
+    String uniqueValue = role['Name']; // Make value unique by appending index
+     print("unique value1 ============> $uniqueValue");
+    return DropdownMenuItem<String>(
+      child: Text(role['Name'] ?? ''),
+      value: uniqueValue,
     );
-  }
+  }).toList();
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 14,
+          color: Color(0xFF666666),
+        ),
+      ),
+      SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        value: _selectedAllocationFor,
+        decoration: InputDecoration(
+          contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: Color(0xFFDDDDDD)),
+          ),
+        ),
+        hint: Text(
+          hint,
+          style: TextStyle(fontSize: 10),
+        ),
+        items: items,
+        onChanged: (value) {
+          setState(() {
+           
+              _selectedAllocationFor = value;
+           
+          });
+        },
+      ),
+    ],
+  );
+}
+
+
+
+Widget _buildDropdown2(String label, String hint) {
+  // Use a Set to track unique role names
+  Set<String> uniqueRoles = Set();
+
+  // Filter unique role names and add them to the Set
+  rolesData.forEach((role) {
+    String roleValue = role['Role'];
+    if (!uniqueRoles.contains(roleValue)) {
+      uniqueRoles.add(roleValue);
+    }
+  });
+
+  // Create DropdownMenuItem list from unique roles
+  List<DropdownMenuItem<String>> items = uniqueRoles.map((roleValue) {
+    return DropdownMenuItem<String>(
+      child: Text(roleValue ?? ''),
+      value: roleValue,
+    );
+  }).toList();
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 14,
+          color: Color(0xFF666666),
+        ),
+      ),
+      SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        value: _selectedRole,
+        decoration: InputDecoration(
+          contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: Color(0xFFDDDDDD)),
+          ),
+        ),
+        hint: Text(
+          hint,
+          style: TextStyle(fontSize: 10),
+        ),
+        items: items,
+        onChanged: (value) {
+          setState(() {
+            _selectedRole = value!;
+          });
+        },
+      ),
+    ],
+  );
+}
+
+
+
+
 
   Widget _buildTextFormField(String labelText, String hintText,
       TextEditingController controller, IconData suffixIcon) {

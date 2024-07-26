@@ -10,6 +10,7 @@ class AllocationManagement extends StatefulWidget {
 
 class _AllocationManagementState extends State<AllocationManagement> {
   final List<Allocation> data = [];
+  List<Allocation> filteredData = [];
 
   String? _role;
   String? _userId;
@@ -49,6 +50,7 @@ class _AllocationManagementState extends State<AllocationManagement> {
         setState(() {
           data.clear();
           data.addAll(allocations);
+          filteredData.addAll(allocations); // Initialize filteredData with all data
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -82,67 +84,80 @@ class _AllocationManagementState extends State<AllocationManagement> {
     }
   }
 
+  void filterData(String query) {
+    setState(() {
+      filteredData = data.where((allocation) =>
+        allocation.product.toLowerCase().contains(query.toLowerCase())
+      ).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Manage Allocation',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Card(
-                  elevation: 5,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: DataTable(
-                      columnSpacing: 20,
-                      headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[200]!),
-                      columns: const <DataColumn>[
-                        DataColumn(label: Text('ALLOCATED TO', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('ALLOCATED BY', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('ALLOCATED ON', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('PRODUCT', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('ADDED ON', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('REQ. QNTY', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('EARNED POINTS', style: TextStyle(fontWeight: FontWeight.bold))),
-                      ],
-                      rows: data
-                        .map(
-                          (item) => DataRow(
-                            cells: [
-                              DataCell(Text(item.allocatedTo)),
-                              DataCell(Text(item.allocatedBy)),
-                              DataCell(Text(item.allocatedOn)),
-                              DataCell(Text(item.product)),
-                              DataCell(Text(item.addedOn)),
-                              DataCell(Text(item.reqQty)),
-                              DataCell(Text(item.earnedPoints)),
-                            ],
-                          ),
-                        )
-                        .toList(),
-                    ),
-                  ),
+      appBar: AppBar(
+        title: Text('Manage Allocation', style: TextStyle(color: Colors.black),),
+        backgroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Search by Product',
+                border: OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.clear),
+                  onPressed: () {
+                    searchController.clear();
+                    filterData('');
+                  },
                 ),
               ),
+              onChanged: (value) {
+                filterData(value);
+              },
             ),
-          ],
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                horizontalMargin: 12,
+                columnSpacing: 20,
+                headingRowColor: MaterialStateColor.resolveWith((states) => Color.fromARGB(255, 247, 245, 245)!),
+                columns: const <DataColumn>[
+                  DataColumn(label: Text('ALLOCATED TO', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('ALLOCATED BY', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('ALLOCATED ON', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('PRODUCT', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('ADDED ON', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('REQ. QNTY', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('EARNED POINTS', style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+                rows: filteredData.map((item) => DataRow(
+                  cells: [
+                    DataCell(Text(item.allocatedTo)),
+                    DataCell(Text(item.allocatedBy)),
+                    DataCell(Text(item.allocatedOn)),
+                    DataCell(Text(item.product)),
+                    DataCell(Text(item.addedOn)),
+                    DataCell(Text(item.reqQty)),
+                    DataCell(Text(item.earnedPoints)),
+                  ],
+                )).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: BottomAppBar(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text('Total Rows: ${filteredData.length}'),
         ),
       ),
     );

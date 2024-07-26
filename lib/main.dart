@@ -3,6 +3,7 @@ import 'package:jaantradersindia/controllers/authController.dart';
 import 'package:jaantradersindia/screens/dashboardScreen.dart';
 import 'package:jaantradersindia/screens/loginScreen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: FutureBuilder<String?>(
-        future: AuthControllers.readCredentialData("UserID"),
+        future: _checkUserID(),
         builder: (context, snapshot) {
           // Check if the future has completed
           if (snapshot.connectionState == ConnectionState.done) {
@@ -38,6 +39,11 @@ class MyApp extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<String?> _checkUserID() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('UserID');
   }
 }
 
